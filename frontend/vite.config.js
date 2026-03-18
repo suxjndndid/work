@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://lesson-plan-backend:8080',
+        target: process.env.API_TARGET || 'http://localhost:12000',
         changeOrigin: true,
       },
     },

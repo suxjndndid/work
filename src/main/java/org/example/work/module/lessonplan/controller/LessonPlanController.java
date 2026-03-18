@@ -12,11 +12,15 @@ import org.springframework.web.bind.annotation.*;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.*;
 
 @RestController
 @RequestMapping("/api/lesson-plan")
 public class LessonPlanController {
+
+    private static final Logger log = LoggerFactory.getLogger(LessonPlanController.class);
 
     private final LessonPlanService lessonPlanService;
     private final ImageAiService imageAiService;
@@ -91,11 +95,14 @@ public class LessonPlanController {
     /** AI 提取教案图片关键词 */
     @PostMapping("/{id}/keywords")
     public Result<List<String>> extractKeywords(@PathVariable Long id) {
+        log.info("[关键词提取] 教案id={}", id);
         LessonPlan plan = lessonPlanService.getById(id);
         if (plan == null || plan.getContent() == null) {
+            log.warn("[关键词提取] 教案不存在或无内容, id={}", id);
             return Result.error("教案不存在或无内容");
         }
         String raw = imageAiService.extractImageKeywords(plan.getContent());
+        log.info("[关键词提取] AI原始返回: {}", raw);
         // 解析AI返回的JSON，提取keyword字段
         List<String> keywordList = new ArrayList<>();
         try {
@@ -118,23 +125,32 @@ public class LessonPlanController {
                 if (kw != null) keywordList.add(kw.toString());
             }
         } catch (Exception e) {
+            log.error("[关键词提取] JSON解析失败, 原始内容: {}", raw, e);
             // 解析失败时，尝试按逗号或换行分割原始文本
             for (String s : raw.replace("[", "").replace("]", "").replace("\"", "").split("[,，\\n]")) {
                 String trimmed = s.trim();
                 if (!trimmed.isEmpty() && trimmed.length() < 50) keywordList.add(trimmed);
             }
         }
+        log.info("[关键词提取] 最终提取关键词: {}", keywordList);
         return Result.ok(keywordList);
     }
 
-    /** AI 生成教学图表（Mermaid） */
+    /** AI 根据所有关键词生成教学流程图（Mermaid） */
     @PostMapping("/{id}/generate-image")
-    public Result<Map<String, String>> generateImage(@PathVariable Long id, @RequestBody Map<String, String> body) {
-        String keyword = body.get("keyword");
-        if (keyword == null || keyword.isBlank()) {
-            return Result.error("关键词不能为空");
+    public Result<Map<String, String>> generateImage(@PathVariable Long id, @RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<String> keywordList = (List<String>) body.get("keywords");
+        if (keywordList == null || keywordList.isEmpty()) {
+            log.warn("[流程图生成] 关键词列表为空, 教案id={}", id);
+            return Result.error("关键词列表不能为空");
         }
-        String raw = imageAiService.generateDiagram(keyword);
+        String keywordsStr = String.join("、", keywordList);
+        log.info("[流程图生成] 教案id={}, 关键词: {}", id, keywordsStr);
+
+        String raw = imageAiService.generateDiagram(keywordsStr);
+        log.info("[流程图生成] AI原始返回: {}", raw);
+
         // 解析AI返回的JSON
         Map<String, String> result = new LinkedHashMap<>();
         try {
@@ -152,13 +168,15 @@ public class LessonPlanController {
                 json = json.substring(first, last + 1);
             }
             Map<String, Object> parsed = mapper.readValue(json, new TypeReference<>() {});
-            result.put("title", String.valueOf(parsed.getOrDefault("title", keyword)));
-            result.put("type", String.valueOf(parsed.getOrDefault("type", "flowchart")));
+            result.put("title", String.valueOf(parsed.getOrDefault("title", "教学流程图")));
+            result.put("type", "flowchart");
             result.put("mermaid", String.valueOf(parsed.getOrDefault("mermaid", "")));
             result.put("description", String.valueOf(parsed.getOrDefault("description", "")));
+            log.info("[流程图生成] 解析成功, title={}, mermaid长度={}", result.get("title"), result.get("mermaid").length());
         } catch (Exception e) {
+            log.error("[流程图生成] JSON解析失败, 原始内容: {}", raw, e);
             // 解析失败，尝试直接当mermaid代码用
-            result.put("title", keyword);
+            result.put("title", "教学流程图");
             result.put("type", "flowchart");
             result.put("mermaid", raw);
             result.put("description", "");

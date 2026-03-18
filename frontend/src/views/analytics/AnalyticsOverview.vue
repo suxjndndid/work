@@ -24,8 +24,8 @@ const loadingStudent = ref(false)
 const generatingStudentReport = ref(false)
 const generatingRecommend = ref(false)
 
-// student sub-tabs: 'analysis' or 'recommend'
-const studentSubTab = ref('analysis')
+// toggle: 'analysis' or 'recommend'
+const activeAiView = ref('analysis')
 
 async function loadCourses() {
   try {
@@ -78,6 +78,7 @@ async function loadStudentData() {
 async function handleStudentAiReport() {
   if (!selectedStudentId.value) { ElMessage.warning('请先选择学生'); return }
   generatingStudentReport.value = true
+  activeAiView.value = 'analysis'
   try {
     const res = await getStudentAiReport(selectedStudentId.value)
     studentReport.value = res.data || ''
@@ -89,6 +90,7 @@ async function handleStudentAiReport() {
 async function handleRecommend() {
   if (!selectedStudentId.value) { ElMessage.warning('请先选择学生'); return }
   generatingRecommend.value = true
+  activeAiView.value = 'recommend'
   try {
     const res = await getStudentRecommend(selectedStudentId.value)
     recommendation.value = res.data || ''
@@ -223,57 +225,69 @@ onMounted(() => { loadCourses(); loadStudents() })
             </div>
           </div>
 
-          <!-- Sub-tabs for AI Analysis and Recommendation -->
-          <el-tabs v-model="studentSubTab" type="card" style="margin-top:8px;">
-            <el-tab-pane name="analysis">
-              <template #label>
-                <span style="display:flex;align-items:center;gap:4px;">
-                  <el-icon><MagicStick /></el-icon>AI 学情分析
-                </span>
-              </template>
-              <div style="padding:16px 0;">
-                <el-button type="primary" :loading="generatingStudentReport" @click="handleStudentAiReport" :disabled="!selectedStudentId" style="margin-bottom:16px;">
-                  <el-icon><MagicStick /></el-icon>&nbsp;生成分析报告
-                </el-button>
-                <div v-if="generatingStudentReport" style="text-align:center;padding:40px;">
-                  <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
-                  <p style="margin-top:12px;color:var(--clay-text-light);">AI 正在分析学情数据...</p>
-                </div>
-                <el-card v-else-if="studentReport">
-                  <template #header><span style="font-weight:600;">AI 学生分析报告</span></template>
-                  <MdRender :content="studentReport" />
-                </el-card>
-                <el-empty v-else description="点击上方按钮生成 AI 学情分析报告" :image-size="80" />
-              </div>
-            </el-tab-pane>
+          <!-- Toggle buttons -->
+          <div style="display:flex;gap:12px;margin-bottom:20px;">
+            <el-button
+              :type="activeAiView === 'analysis' ? 'primary' : 'default'"
+              :loading="generatingStudentReport"
+              @click="activeAiView === 'analysis' && !studentReport ? handleStudentAiReport() : (activeAiView = 'analysis')"
+              :disabled="!selectedStudentId"
+            >
+              <el-icon><MagicStick /></el-icon>&nbsp;AI 学情分析
+            </el-button>
+            <el-button
+              :type="activeAiView === 'recommend' ? 'warning' : 'default'"
+              :loading="generatingRecommend"
+              @click="activeAiView === 'recommend' && !recommendation ? handleRecommend() : (activeAiView = 'recommend')"
+              :disabled="!selectedStudentId"
+            >
+              <el-icon><Promotion /></el-icon>&nbsp;个性化推荐
+            </el-button>
+          </div>
 
-            <el-tab-pane name="recommend">
-              <template #label>
-                <span style="display:flex;align-items:center;gap:4px;">
-                  <el-icon><Promotion /></el-icon>个性化推荐
-                </span>
-              </template>
-              <div style="padding:16px 0;">
-                <el-button type="warning" :loading="generatingRecommend" @click="handleRecommend" :disabled="!selectedStudentId" style="margin-bottom:16px;">
-                  <el-icon><Promotion /></el-icon>&nbsp;生成个性化推荐
-                </el-button>
-                <div v-if="generatingRecommend" style="text-align:center;padding:40px;">
-                  <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
-                  <p style="margin-top:12px;color:var(--clay-text-light);">AI 正在生成个性化推荐...</p>
+          <!-- AI Analysis card (v-show preserves content) -->
+          <div v-show="activeAiView === 'analysis'">
+            <el-card>
+              <template #header>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span style="font-weight:600;">AI 学生分析报告</span>
+                  <el-button v-if="studentReport" type="primary" size="small" :loading="generatingStudentReport" @click="handleStudentAiReport">
+                    <el-icon><Refresh /></el-icon>&nbsp;重新生成
+                  </el-button>
                 </div>
-                <el-card v-else-if="recommendation">
-                  <template #header>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                      <el-icon color="var(--clay-primary)"><Promotion /></el-icon>
-                      <span style="font-weight:600;">个性化资源推荐</span>
-                    </div>
-                  </template>
-                  <MdRender :content="recommendation" />
-                </el-card>
-                <el-empty v-else description="点击上方按钮生成个性化学习资源推荐" :image-size="80" />
+              </template>
+              <div v-if="generatingStudentReport" style="text-align:center;padding:40px;">
+                <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
+                <p style="margin-top:12px;color:var(--clay-text-light);">AI 正在分析学情数据...</p>
               </div>
-            </el-tab-pane>
-          </el-tabs>
+              <MdRender v-else-if="studentReport" :content="studentReport" />
+              <el-empty v-else description="点击上方按钮生成 AI 学情分析报告" :image-size="80" />
+            </el-card>
+          </div>
+
+          <!-- Recommendation card (v-show preserves content) -->
+          <div v-show="activeAiView === 'recommend'">
+            <el-card>
+              <template #header>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <el-icon color="var(--clay-primary)"><Promotion /></el-icon>
+                    <span style="font-weight:600;">个性化资源推荐</span>
+                  </div>
+                  <el-button v-if="recommendation" type="warning" size="small" :loading="generatingRecommend" @click="handleRecommend">
+                    <el-icon><Refresh /></el-icon>&nbsp;重新生成
+                  </el-button>
+                </div>
+              </template>
+              <div v-if="generatingRecommend" style="text-align:center;padding:40px;">
+                <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
+                <p style="margin-top:12px;color:var(--clay-text-light);">AI 正在生成个性化推荐...</p>
+              </div>
+              <MdRender v-else-if="recommendation" :content="recommendation" />
+              <el-empty v-else description="点击上方按钮生成个性化学习资源推荐" :image-size="80" />
+            </el-card>
+          </div>
+
         </div>
       </el-tab-pane>
     </el-tabs>

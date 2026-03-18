@@ -18,8 +18,6 @@ const regenerating = ref(false)
 const keywords = ref([])
 const extractingKw = ref(false)
 const generatingImg = ref(false)
-const generatedImageUrl = ref('')
-const imageDesign = ref('')
 const diagramData = ref(null)
 
 async function loadPlan() {
@@ -68,13 +66,20 @@ async function handleExtractKeywords() {
   extractingKw.value = false
 }
 
-async function handleGenerateImage(kw) {
+async function handleGenerateFlowchart() {
+  if (!keywords.value.length) {
+    ElMessage.warning('请先提取关键词')
+    return
+  }
   generatingImg.value = true
   try {
-    const res = await generateImage(id, kw)
+    const res = await generateImage(id, keywords.value)
     diagramData.value = res.data || null
-    ElMessage.success('教学图表生成成功')
-  } catch {}
+    ElMessage.success('教学流程图生成成功')
+  } catch (e) {
+    console.error('[流程图生成失败]', e)
+    ElMessage.error('流程图生成失败，请重试')
+  }
   generatingImg.value = false
 }
 
@@ -129,31 +134,34 @@ onMounted(() => { loadPlan(); loadVersions() })
       <el-card>
         <template #header>
           <div style="display:flex;justify-content:space-between;align-items:center;">
-            <span style="font-weight:600;">AI 图片关键词</span>
+            <span style="font-weight:600;">AI 教学关键词</span>
             <el-button type="primary" size="small" :loading="extractingKw" @click="handleExtractKeywords">
               <el-icon><MagicStick /></el-icon>&nbsp;提取关键词
             </el-button>
           </div>
         </template>
-        <div v-if="keywords.length" style="display:flex;flex-wrap:wrap;gap:8px;">
-          <el-tag v-for="kw in keywords" :key="kw" size="large" style="cursor:pointer;" @click="handleGenerateImage(kw)">
-            {{ kw }}<el-icon style="margin-left:4px;"><Picture /></el-icon>
-          </el-tag>
+        <div v-if="keywords.length">
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <el-tag v-for="kw in keywords" :key="kw" size="large">{{ kw }}</el-tag>
+          </div>
+          <el-button type="success" :loading="generatingImg" @click="handleGenerateFlowchart" style="width:100%;">
+            <el-icon><DataLine /></el-icon>&nbsp;根据关键词生成教学流程图
+          </el-button>
         </div>
-        <el-empty v-else description="点击提取关键词后，可点击关键词生成图片" :image-size="60" />
+        <el-empty v-else description="点击提取关键词，然后生成教学流程图" :image-size="60" />
       </el-card>
 
       <!-- Generated diagram -->
       <el-card>
         <template #header>
-          <span style="font-weight:600;">AI 教学图表</span>
+          <span style="font-weight:600;">AI 教学流程图</span>
         </template>
         <div v-if="generatingImg" style="text-align:center;padding:40px;">
           <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
-          <p style="margin-top:12px;color:var(--clay-text-light);">图表生成中...</p>
+          <p style="margin-top:12px;color:var(--clay-text-light);">教学流程图生成中...</p>
         </div>
         <MermaidDiagram v-else-if="diagramData?.mermaid" :code="diagramData.mermaid" :title="diagramData.title" :description="diagramData.description" />
-        <el-empty v-else description="选择关键词生成教学流程图/示意图" :image-size="60" />
+        <el-empty v-else description="提取关键词后，点击生成教学流程图" :image-size="60" />
       </el-card>
     </div>
 

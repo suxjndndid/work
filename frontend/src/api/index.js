@@ -22,7 +22,7 @@ export const deleteLessonPlan = (id) => request.delete(`/lesson-plan/${id}`)
 export const getLessonPlanVersions = (id) => request.get(`/lesson-plan/${id}/versions`)
 export const getTemplates = () => request.get('/lesson-plan/templates')
 export const extractKeywords = (id) => request.post(`/lesson-plan/${id}/keywords`, null, { timeout: 300000 })
-export const generateImage = (id, keyword) => request.post(`/lesson-plan/${id}/generate-image`, { keyword }, { timeout: 300000 })
+export const generateImage = (id, keywords) => request.post(`/lesson-plan/${id}/generate-image`, { keywords }, { timeout: 300000 })
 
 // Exercise
 export const getExerciseList = (params) => request.get('/exercise/list', { params })

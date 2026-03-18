@@ -38,3 +38,4 @@ docs/temp/
 .env
 .mvn/
 log/
+docs/changelog.md

@@ -106,7 +106,7 @@ LangChain4j 的 `spring-boot-starter` 与 Spring Boot 4.0 不兼容 ([GitHub Iss
 | 1 | AI 生成完整教案 | 输入课程主题，生成含 ≥3 个互动环节的教案 | `POST /api/lesson-plan/generate` |
 | 2 | 互动环节模板插入 | 提供小组讨论/角色扮演/案例分析等模板库 | `GET /api/lesson-plan/templates` |
 | 3 | AI 生成图片关键词 | 从教案内容提取图片/视频制作关键词 | `POST /api/lesson-plan/{id}/keywords` |
-| 4 | AI 生成教学图表 | 根据关键词生成 Mermaid 流程图/示意图 | `POST /api/lesson-plan/{id}/generate-image` |
+| 4 | AI 生成教学流程图 | 根据所有关键词生成 Mermaid 教学流程图 | `POST /api/lesson-plan/{id}/generate-image` |
 | 5 | AI 生成结构化习题 | 按题型/难度生成 JSON 格式题目+答案 | `POST /api/exercise/generate` |
 | 6 | 手动管理教案与习题 | CRUD 操作 | `/api/lesson-plan/*`, `/api/exercise/*` |
 | 7 | 班级学情数据录入 | 成绩、答题时长等数据管理 | `/api/score/*`, `/api/student/*` |
@@ -268,8 +268,8 @@ knowledge_point 1──N knowledge_point_mastery
 | DELETE | `/api/lesson-plan/{id}` | 删除 |
 | GET | `/api/lesson-plan/{id}/versions` | 版本历史 |
 | GET | `/api/lesson-plan/templates` | 互动环节模板列表 |
-| POST | `/api/lesson-plan/{id}/keywords` | AI 提取图片关键词 |
-| POST | `/api/lesson-plan/{id}/generate-image` | AI 生成教学图片 |
+| POST | `/api/lesson-plan/{id}/keywords` | AI 提取教学关键词 |
+| POST | `/api/lesson-plan/{id}/generate-image` | AI 根据所有关键词生成教学流程图 |
 
 **生成教案请求体:**
 ```json
@@ -282,6 +282,14 @@ knowledge_point 1──N knowledge_point_mastery
   "duration": 45
 }
 ```
+
+**生成教学流程图请求体:**
+```json
+{
+  "keywords": ["关键词1", "关键词2", "关键词3"]
+}
+```
+返回 Mermaid 流程图数据：`{ title, type, mermaid, description }`
 
 ### 练习题 `/api/exercise`
 
@@ -450,7 +458,7 @@ tail -f log/app.log | grep "\[AI\]"
 | `LessonPlanAiService` | 教案生成(含≥3个互动环节) | 是(课标检索) |
 | `ExerciseAiService` | 练习题生成(结构化JSON) | 否 |
 | `AnalyticsAiService` | 学情分析(班级+个人报告) | 否 |
-| `ImageAiService` | 图片关键词提取 + Mermaid图表生成 + 个性化资源推荐 | 否 |
+| `ImageAiService` | 教学关键词提取 + Mermaid教学流程图生成 + 个性化资源推荐 | 否 |
 
 ### RAG 工作流
 
@@ -483,7 +491,7 @@ docker compose up -d
 
 服务清单:
 - MySQL: `localhost:3306`
-- 后端 API: `localhost:8080`
+- 后端 API: `localhost:12000`
 - 前端: `localhost:5173`
 
 ### 生产部署
@@ -494,7 +502,7 @@ docker compose -f docker-compose.prod.yml up -d
 ```
 
 - 前端通过 Nginx 代理, 端口 80
-- 后端 API 端口 8080
+- 后端 API 端口 12000
 
 ---
 
@@ -569,7 +577,7 @@ npm run dev
 | Dashboard | 工作台概览 | 聚合 course/lesson-plan/exercise/student list |
 | CourseList | 课程 CRUD | /api/course/* |
 | LessonPlanList | 教案列表 + AI生成 | /api/lesson-plan/list, generate |
-| LessonPlanDetail | 教案详情/编辑/关键词/图片 | /api/lesson-plan/{id}/* |
+| LessonPlanDetail | 教案详情/编辑/关键词/流程图 | /api/lesson-plan/{id}/* |
 | ExerciseList | 习题列表 + AI生成 | /api/exercise/* |
 | StudentList | 学生 CRUD | /api/student/* |
 | ScoreList | 成绩管理 + 批量导入 | /api/score/* |

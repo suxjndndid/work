@@ -79,7 +79,7 @@ docker compose up -d --build
 
 # 服务地址：
 # - 前端: http://localhost:5173
-# - 后端: http://localhost:8080
+# - 后端: http://localhost:12000
 # - MySQL: localhost:3306
 ```
 

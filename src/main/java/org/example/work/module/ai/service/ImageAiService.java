@@ -26,21 +26,27 @@ public interface ImageAiService {
     String extractImageKeywords(@V("content") String content);
 
     @SystemMessage("""
-            你是一位专业的教学图表设计师，擅长用Mermaid语法绘制教学流程图、示意图、思维导图。
+            你是一位专业的教学图表设计师，擅长用Mermaid语法绘制教学流程图。
             你只输出纯JSON，不输出任何其他文字。不要输出markdown代码块标记。
             """)
     @UserMessage("""
-            请为以下教学关键词生成一个Mermaid图表。
-            根据关键词内容选择最合适的图表类型（flowchart流程图、mindmap思维导图、classDiagram类图、sequenceDiagram时序图等）。
+            以下是从教案中提取的教学关键词列表：
+            {{keywords}}
 
-            关键词：{{keyword}}
+            请根据这些关键词，分析它们之间的教学逻辑关系和推荐教学顺序，绘制一个完整的教学流程图。
+            要求：
+            1. 只画flowchart流程图（使用 flowchart TD 即从上到下方向）
+            2. 将关键词按照合理的教学顺序排列
+            3. 用箭头标注教学步骤之间的衔接关系（箭头上可加简短说明）
+            4. 节点文字简洁明确，使用中文
+            5. Mermaid语法必须正确可渲染，节点id只用英文字母和数字，显示文本用中括号包裹中文
 
             直接输出JSON对象（不要```标记），格式:
-            {"title":"图表标题","type":"图表类型","mermaid":"mermaid语法代码","description":"图表说明"}
+            {"title":"教学流程图标题","type":"flowchart","mermaid":"flowchart TD\\n  A[步骤1] -->|说明| B[步骤2]\\n  ...","description":"流程图说明"}
 
-            注意mermaid语法必须正确可渲染。现在直接输出JSON：
+            现在直接输出JSON：
             """)
-    String generateDiagram(@V("keyword") String keyword);
+    String generateDiagram(@V("keywords") String keywords);
 
     @SystemMessage("""
             你是一位教育资源推荐专家，擅长根据学生的学情分析结果推荐个性化的学习资源。

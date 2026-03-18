@@ -11,14 +11,14 @@ services:
       MYSQL_CHARSET: utf8mb4
       MYSQL_COLLATION: utf8mb4_general_ci
     ports:
-      - "3306:3306"
+      - "13306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
       - ../schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./mysql-charset.cnf:/etc/mysql/conf.d/charset.cnf
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci --character-set-client-handshake=FALSE --init-connect='SET NAMES utf8mb4'
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -29,7 +29,7 @@ services:
       dockerfile: docs/docker/Dockerfile.backend
     container_name: lesson-plan-backend
     ports:
-      - "8080:8080"
+      - "12000:12000"
     environment:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/lesson_plan_db?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
       SPRING_DATASOURCE_USERNAME: root
@@ -50,6 +50,8 @@ services:
     working_dir: /app
     ports:
       - "5173:5173"
+    environment:
+      API_TARGET: http://backend:12000
     volumes:
       - ../../frontend:/app
       - frontend-node-modules:/app/node_modules
