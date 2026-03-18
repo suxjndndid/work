@@ -37,3 +37,4 @@ docs/temp/
 .mvn/
 .env
 .mvn/
+log/

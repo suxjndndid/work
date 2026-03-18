@@ -165,7 +165,7 @@ public class DataInitializer implements CommandLineRunner {
     private User createUser(String username, String realName, int role) {
         User user = new User();
         user.setUsername(username);
-        user.setPassword(String.valueOf("123456".hashCode()));
+        user.setPassword("123456");
         user.setRealName(realName);
         user.setRole(role);
         user.setStatus(1);

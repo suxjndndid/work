@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS knowledge_point (
     sort_order INT DEFAULT 0 COMMENT '排序',
     description TEXT COMMENT '描述',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted TINYINT NOT NULL DEFAULT 0,
     INDEX idx_course_id (course_id),
     INDEX idx_parent_id (parent_id)
 ) COMMENT='知识点表';

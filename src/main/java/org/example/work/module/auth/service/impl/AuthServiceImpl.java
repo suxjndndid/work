@@ -28,7 +28,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException("账号已被禁用");
         }
         // 简单密码校验
-        if (!String.valueOf(request.getPassword().hashCode()).equals(user.getPassword())) {
+        if (!request.getPassword().equals(user.getPassword())) {
             throw new BusinessException("密码错误");
         }
         StpUtil.login(user.getId());

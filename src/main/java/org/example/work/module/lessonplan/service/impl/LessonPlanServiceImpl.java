@@ -39,6 +39,10 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         log.info("开始为用户 {} 生成教案: {}", userId, request.getTopic());
 
         // 调用 AI 生成教案内容
+        long startTime = System.currentTimeMillis();
+        log.debug("[AI] 教案生成请求 - subject={}, grade={}, topic={}, duration={}",
+                request.getSubject(), request.getGrade(), request.getTopic(), request.getDuration());
+
         String content = lessonPlanAiService.generateLessonPlan(
                 request.getSubject(),
                 request.getGrade(),
@@ -46,6 +50,9 @@ public class LessonPlanServiceImpl implements LessonPlanService {
                 request.getObjectives() != null ? request.getObjectives() : "根据课程标准自动确定",
                 request.getDuration() != null ? request.getDuration() : 45
         );
+
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.debug("[AI] 教案生成完成 - 耗时 {}ms, 内容长度 {} 字符", elapsed, content != null ? content.length() : 0);
 
         // 构建教案实体
         LessonPlan lessonPlan = new LessonPlan();
@@ -77,6 +84,9 @@ public class LessonPlanServiceImpl implements LessonPlanService {
         }
 
         // 重新调用 AI 生成
+        long startTime = System.currentTimeMillis();
+        log.debug("[AI] 教案重新生成 - id={}, topic={}", id, existing.getTopic());
+
         String content = lessonPlanAiService.generateLessonPlan(
                 existing.getSubject(),
                 existing.getGrade(),
@@ -84,6 +94,9 @@ public class LessonPlanServiceImpl implements LessonPlanService {
                 existing.getObjectives() != null ? existing.getObjectives() : "根据课程标准自动确定",
                 existing.getDuration() != null ? existing.getDuration() : 45
         );
+
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.debug("[AI] 教案重新生成完成 - 耗时 {}ms", elapsed);
 
         // 更新教案
         int newVersion = existing.getVersion() + 1;

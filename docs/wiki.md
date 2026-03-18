@@ -129,6 +129,28 @@ work/
 │       ├── docker-compose.prod.yml ← 生产编排
 │       └── nginx.conf          ← 前端 Nginx 配置
 ├── frontend/                    ← Vue 3 前端项目
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── request.js       ← Axios 封装(拦截器/Token)
+│   │   │   └── index.js         ← 所有 API 调用方法
+│   │   ├── router/index.js      ← Vue Router 路由配置
+│   │   ├── store/user.js        ← Pinia 用户状态管理
+│   │   ├── layout/AppLayout.vue ← 布局(侧边栏+头部)
+│   │   ├── views/
+│   │   │   ├── Login.vue        ← 登录页
+│   │   │   ├── Dashboard.vue    ← 工作台首页
+│   │   │   ├── course/          ← 课程管理 CRUD
+│   │   │   ├── lessonplan/      ← 教案管理 + AI生成 + 详情
+│   │   │   ├── exercise/        ← 练习题管理 + AI生成
+│   │   │   ├── student/         ← 学生管理 CRUD
+│   │   │   ├── score/           ← 成绩管理 + 批量导入
+│   │   │   ├── knowledge/       ← 知识点树形管理
+│   │   │   ├── analytics/       ← 学情分析(班级+学生+AI)
+│   │   │   └── prepplan/        ← 备课方案生成
+│   │   ├── style.css            ← 粘土风格全局样式
+│   │   ├── App.vue
+│   │   └── main.js
+│   └── package.json
 ├── src/main/java/org/example/work/
 │   ├── WorkApplication.java
 │   ├── config/
@@ -402,3 +424,37 @@ npm run dev
 ## 参考文档与链接
 
 详见 [references.md](references.md)
+
+---
+
+## 前端设计规范
+
+### 风格: 粘土风格 (Clay Style)
+
+- 圆角设计: 16px 标准圆角, 卡片/对话框 24-32px 大圆角
+- 柔和阴影: 外阴影 + 内阴影模拟粘土质感
+- 标签/徽章: 胶囊形 (border-radius: 20px)
+
+### 色系
+
+| 色系 | RGB | HEX | 用途 |
+|------|-----|-----|------|
+| 主色(鼠尾草) | 138,182,189 | #8AB6BD | 按钮/高亮/进度条/侧边栏活跃 |
+| 辅色(暖桃) | 249,216,197 | #F9D8C5 | 表头背景/警告标签/Banner渐变 |
+| 深色(墨青) | 101,123,127 | #657B7F | 侧边栏背景/文字/二级按钮 |
+
+### 页面功能与后端 API 对照
+
+| 前端页面 | 功能 | 调用 API |
+|----------|------|----------|
+| Login | 登录认证 | POST /api/auth/login |
+| Dashboard | 工作台概览 | 聚合 course/lesson-plan/exercise/student list |
+| CourseList | 课程 CRUD | /api/course/* |
+| LessonPlanList | 教案列表 + AI生成 | /api/lesson-plan/list, generate |
+| LessonPlanDetail | 教案详情/编辑/关键词/图片 | /api/lesson-plan/{id}/* |
+| ExerciseList | 习题列表 + AI生成 | /api/exercise/* |
+| StudentList | 学生 CRUD | /api/student/* |
+| ScoreList | 成绩管理 + 批量导入 | /api/score/* |
+| KnowledgePointList | 知识点树形管理 | /api/knowledge-point/* |
+| AnalyticsOverview | 班级/学生学情分析 + AI报告 + 个性化推荐 | /api/analytics/* |
+| PrepPlanList | 备课方案生成 | /api/prep-plan/* |

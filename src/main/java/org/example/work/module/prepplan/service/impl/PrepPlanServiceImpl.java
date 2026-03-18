@@ -88,7 +88,11 @@ public class PrepPlanServiceImpl implements PrepPlanService {
         prompt.append("6. 课后延伸与个性化推荐\n");
         prompt.append("7. 备课时间安排建议\n");
 
+        long startTime = System.currentTimeMillis();
+        log.debug("[AI] 备课方案请求 - prompt长度={}", prompt.length());
         String response = chatModel.chat(prompt.toString());
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.debug("[AI] 备课方案生成完成 - 耗时 {}ms, 返回长度 {}", elapsed, response != null ? response.length() : 0);
         log.info("备课方案生成完成");
         return response;
     }

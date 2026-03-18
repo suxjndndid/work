@@ -13,6 +13,8 @@ import org.example.work.module.analytics.mapper.KnowledgePointMasteryMapper;
 import org.example.work.module.analytics.mapper.ScoreMapper;
 import org.example.work.module.analytics.mapper.StudentMapper;
 import org.example.work.module.analytics.service.AnalyticsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,6 +24,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class AnalyticsServiceImpl implements AnalyticsService {
+
+    private static final Logger log = LoggerFactory.getLogger(AnalyticsServiceImpl.class);
 
     private final ScoreMapper scoreMapper;
     private final StudentMapper studentMapper;
@@ -152,14 +156,22 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public String generateClassReport(Long courseId) {
         ClassAnalyticsDTO analytics = getClassAnalytics(courseId);
         String data = formatClassData(analytics);
-        return analyticsAiService.analyzeClassPerformance(data);
+        long startTime = System.currentTimeMillis();
+        log.debug("[AI] 班级学情分析请求 - courseId={}, 数据长度={}", courseId, data.length());
+        String result = analyticsAiService.analyzeClassPerformance(data);
+        log.debug("[AI] 班级学情分析完成 - 耗时 {}ms, 返回长度 {}", System.currentTimeMillis() - startTime, result != null ? result.length() : 0);
+        return result;
     }
 
     @Override
     public String generateStudentReport(Long studentId) {
         StudentAnalyticsDTO analytics = getStudentAnalytics(studentId);
         String data = formatStudentData(analytics);
-        return analyticsAiService.analyzeStudentPerformance(data);
+        long startTime = System.currentTimeMillis();
+        log.debug("[AI] 学生分析请求 - studentId={}, 数据长度={}", studentId, data.length());
+        String result = analyticsAiService.analyzeStudentPerformance(data);
+        log.debug("[AI] 学生分析完成 - 耗时 {}ms, 返回长度 {}", System.currentTimeMillis() - startTime, result != null ? result.length() : 0);
+        return result;
     }
 
     private String formatClassData(ClassAnalyticsDTO dto) {

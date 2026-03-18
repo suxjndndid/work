@@ -36,12 +36,19 @@ public class ExerciseServiceImpl implements ExerciseService {
         log.info("AI 生成习题: topic={}, type={}, difficulty={}, count={}",
                 request.getTopic(), request.getQuestionType(), request.getDifficulty(), request.getCount());
 
+        long startTime = System.currentTimeMillis();
+        log.debug("[AI] 习题生成请求发送...");
+
         String jsonResult = exerciseAiService.generateExercises(
                 request.getTopic(),
                 request.getQuestionType(),
                 request.getDifficulty(),
                 request.getCount()
         );
+
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.debug("[AI] 习题生成响应 - 耗时 {}ms, 原始长度 {} 字符", elapsed, jsonResult != null ? jsonResult.length() : 0);
+        log.debug("[AI] 习题原始返回: {}", jsonResult);
 
         // 清理可能的 markdown 代码块标记
         jsonResult = jsonResult.trim();
