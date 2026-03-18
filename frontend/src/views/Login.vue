@@ -49,9 +49,6 @@ async function handleLogin() {
           登 录
         </el-button>
       </el-form>
-      <div class="login-footer">
-        <span>默认账号: teacher1 / 123456</span>
-      </div>
     </div>
   </div>
 </template>

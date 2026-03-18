@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getLessonPlan, updateLessonPlan, regenerateLessonPlan, getLessonPlanVersions, extractKeywords, generateImage } from '../../api'
 import MdRender from '../../components/MdRender.vue'
+import MermaidDiagram from '../../components/MermaidDiagram.vue'
 import { ElMessage } from 'element-plus'
 
 const route = useRoute()
@@ -18,6 +19,8 @@ const keywords = ref([])
 const extractingKw = ref(false)
 const generatingImg = ref(false)
 const generatedImageUrl = ref('')
+const imageDesign = ref('')
+const diagramData = ref(null)
 
 async function loadPlan() {
   loading.value = true
@@ -69,8 +72,8 @@ async function handleGenerateImage(kw) {
   generatingImg.value = true
   try {
     const res = await generateImage(id, kw)
-    generatedImageUrl.value = res.data?.url || res.data || ''
-    ElMessage.success('图片生成成功')
+    diagramData.value = res.data || null
+    ElMessage.success('教学图表生成成功')
   } catch {}
   generatingImg.value = false
 }
@@ -140,17 +143,17 @@ onMounted(() => { loadPlan(); loadVersions() })
         <el-empty v-else description="点击提取关键词后，可点击关键词生成图片" :image-size="60" />
       </el-card>
 
-      <!-- Generated image -->
+      <!-- Generated diagram -->
       <el-card>
         <template #header>
-          <span style="font-weight:600;">AI 生成图片</span>
+          <span style="font-weight:600;">AI 教学图表</span>
         </template>
         <div v-if="generatingImg" style="text-align:center;padding:40px;">
           <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
-          <p style="margin-top:12px;color:var(--clay-text-light);">图片生成中...</p>
+          <p style="margin-top:12px;color:var(--clay-text-light);">图表生成中...</p>
         </div>
-        <el-image v-else-if="generatedImageUrl" :src="generatedImageUrl" fit="contain" style="width:100%;max-height:300px;border-radius:var(--clay-radius-sm);" />
-        <el-empty v-else description="选择关键词生成教学图片" :image-size="60" />
+        <MermaidDiagram v-else-if="diagramData?.mermaid" :code="diagramData.mermaid" :title="diagramData.title" :description="diagramData.description" />
+        <el-empty v-else description="选择关键词生成教学流程图/示意图" :image-size="60" />
       </el-card>
     </div>
 

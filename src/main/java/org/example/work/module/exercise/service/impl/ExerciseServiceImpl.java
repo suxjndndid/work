@@ -50,12 +50,9 @@ public class ExerciseServiceImpl implements ExerciseService {
         log.debug("[AI] 习题生成响应 - 耗时 {}ms, 原始长度 {} 字符", elapsed, jsonResult != null ? jsonResult.length() : 0);
         log.debug("[AI] 习题原始返回: {}", jsonResult);
 
-        // 清理可能的 markdown 代码块标记
-        jsonResult = jsonResult.trim();
-        if (jsonResult.startsWith("```")) {
-            jsonResult = jsonResult.replaceFirst("```(json)?\\s*", "");
-            jsonResult = jsonResult.replaceFirst("\\s*```$", "");
-        }
+        // 从AI返回中提取JSON数组 — 兼容各种格式
+        jsonResult = extractJsonArray(jsonResult);
+        log.debug("[AI] 提取后的JSON: {}", jsonResult);
 
         List<Exercise> exercises = new ArrayList<>();
         try {
@@ -118,5 +115,46 @@ public class ExerciseServiceImpl implements ExerciseService {
     @Override
     public void delete(Long id) {
         exerciseMapper.deleteById(id);
+    }
+
+    /**
+     * 从AI返回的文本中提取JSON数组，兼容以下格式：
+     * 1. 纯JSON数组 [...]
+     * 2. markdown代码块 ```json [...] ```
+     * 3. 前后有多余文字但中间包含JSON数组
+     */
+    private String extractJsonArray(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "[]";
+        }
+
+        String text = raw.trim();
+
+        // 1. 去除markdown代码块标记 ```json ... ``` 或 ``` ... ```
+        if (text.contains("```")) {
+            // 提取代码块内的内容
+            int start = text.indexOf("```");
+            // 跳过 ```json 或 ``` 这一行
+            int contentStart = text.indexOf('\n', start);
+            if (contentStart == -1) contentStart = start + 3;
+            else contentStart += 1;
+
+            int end = text.indexOf("```", contentStart);
+            if (end > contentStart) {
+                text = text.substring(contentStart, end).trim();
+            } else {
+                // 只有开头的 ```，去掉它
+                text = text.substring(contentStart).trim();
+            }
+        }
+
+        // 2. 找到第一个 [ 和最后一个 ] 来提取JSON数组
+        int firstBracket = text.indexOf('[');
+        int lastBracket = text.lastIndexOf(']');
+        if (firstBracket != -1 && lastBracket > firstBracket) {
+            text = text.substring(firstBracket, lastBracket + 1);
+        }
+
+        return text;
     }
 }

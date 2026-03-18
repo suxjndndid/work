@@ -106,7 +106,7 @@ LangChain4j 的 `spring-boot-starter` 与 Spring Boot 4.0 不兼容 ([GitHub Iss
 | 1 | AI 生成完整教案 | 输入课程主题，生成含 ≥3 个互动环节的教案 | `POST /api/lesson-plan/generate` |
 | 2 | 互动环节模板插入 | 提供小组讨论/角色扮演/案例分析等模板库 | `GET /api/lesson-plan/templates` |
 | 3 | AI 生成图片关键词 | 从教案内容提取图片/视频制作关键词 | `POST /api/lesson-plan/{id}/keywords` |
-| 4 | AI 调用绘图 API | 根据关键词生成教学示意图/流程图 | `POST /api/lesson-plan/{id}/generate-image` |
+| 4 | AI 生成教学图表 | 根据关键词生成 Mermaid 流程图/示意图 | `POST /api/lesson-plan/{id}/generate-image` |
 | 5 | AI 生成结构化习题 | 按题型/难度生成 JSON 格式题目+答案 | `POST /api/exercise/generate` |
 | 6 | 手动管理教案与习题 | CRUD 操作 | `/api/lesson-plan/*`, `/api/exercise/*` |
 | 7 | 班级学情数据录入 | 成绩、答题时长等数据管理 | `/api/score/*`, `/api/student/*` |
@@ -450,7 +450,7 @@ tail -f log/app.log | grep "\[AI\]"
 | `LessonPlanAiService` | 教案生成(含≥3个互动环节) | 是(课标检索) |
 | `ExerciseAiService` | 练习题生成(结构化JSON) | 否 |
 | `AnalyticsAiService` | 学情分析(班级+个人报告) | 否 |
-| `ImageAiService` | 图片关键词提取 + 个性化资源推荐 | 否 |
+| `ImageAiService` | 图片关键词提取 + Mermaid图表生成 + 个性化资源推荐 | 否 |
 
 ### RAG 工作流
 

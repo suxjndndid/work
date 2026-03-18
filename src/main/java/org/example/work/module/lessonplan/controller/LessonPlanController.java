@@ -10,6 +10,8 @@ import org.example.work.module.lessonplan.entity.LessonPlanVersion;
 import org.example.work.module.lessonplan.service.LessonPlanService;
 import org.springframework.web.bind.annotation.*;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.*;
 
 @RestController
@@ -88,24 +90,79 @@ public class LessonPlanController {
 
     /** AI 提取教案图片关键词 */
     @PostMapping("/{id}/keywords")
-    public Result<String> extractKeywords(@PathVariable Long id) {
+    public Result<List<String>> extractKeywords(@PathVariable Long id) {
         LessonPlan plan = lessonPlanService.getById(id);
         if (plan == null || plan.getContent() == null) {
             return Result.error("教案不存在或无内容");
         }
-        String keywords = imageAiService.extractImageKeywords(plan.getContent());
-        return Result.ok(keywords);
+        String raw = imageAiService.extractImageKeywords(plan.getContent());
+        // 解析AI返回的JSON，提取keyword字段
+        List<String> keywordList = new ArrayList<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            // 去除可能的markdown代码块标记
+            String json = raw.trim();
+            if (json.contains("```")) {
+                int start = json.indexOf('\n', json.indexOf("```"));
+                int end = json.indexOf("```", start);
+                if (start > 0 && end > start) json = json.substring(start, end).trim();
+            }
+            int first = json.indexOf('[');
+            int last = json.lastIndexOf(']');
+            if (first >= 0 && last > first) {
+                json = json.substring(first, last + 1);
+            }
+            List<Map<String, Object>> items = mapper.readValue(json, new TypeReference<>() {});
+            for (Map<String, Object> item : items) {
+                Object kw = item.get("keyword");
+                if (kw != null) keywordList.add(kw.toString());
+            }
+        } catch (Exception e) {
+            // 解析失败时，尝试按逗号或换行分割原始文本
+            for (String s : raw.replace("[", "").replace("]", "").replace("\"", "").split("[,，\\n]")) {
+                String trimmed = s.trim();
+                if (!trimmed.isEmpty() && trimmed.length() < 50) keywordList.add(trimmed);
+            }
+        }
+        return Result.ok(keywordList);
     }
 
-    /** AI 生成教学图片(返回描述，可对接绘图API) */
+    /** AI 生成教学图表（Mermaid） */
     @PostMapping("/{id}/generate-image")
-    public Result<String> generateImage(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public Result<Map<String, String>> generateImage(@PathVariable Long id, @RequestBody Map<String, String> body) {
         String keyword = body.get("keyword");
         if (keyword == null || keyword.isBlank()) {
             return Result.error("关键词不能为空");
         }
-        // 此处返回绘图 prompt，可对接 DashScope 的通义万相等绘图 API
-        String prompt = "教学示意图：" + keyword + "。风格：简洁清晰的教学插图，适合课堂展示，白色背景。";
-        return Result.ok(prompt);
+        String raw = imageAiService.generateDiagram(keyword);
+        // 解析AI返回的JSON
+        Map<String, String> result = new LinkedHashMap<>();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String json = raw.trim();
+            // 去除markdown代码块
+            if (json.contains("```")) {
+                int start = json.indexOf('\n', json.indexOf("```"));
+                int end = json.indexOf("```", start);
+                if (start > 0 && end > start) json = json.substring(start, end).trim();
+            }
+            int first = json.indexOf('{');
+            int last = json.lastIndexOf('}');
+            if (first >= 0 && last > first) {
+                json = json.substring(first, last + 1);
+            }
+            Map<String, Object> parsed = mapper.readValue(json, new TypeReference<>() {});
+            result.put("title", String.valueOf(parsed.getOrDefault("title", keyword)));
+            result.put("type", String.valueOf(parsed.getOrDefault("type", "flowchart")));
+            result.put("mermaid", String.valueOf(parsed.getOrDefault("mermaid", "")));
+            result.put("description", String.valueOf(parsed.getOrDefault("description", "")));
+        } catch (Exception e) {
+            // 解析失败，尝试直接当mermaid代码用
+            result.put("title", keyword);
+            result.put("type", "flowchart");
+            result.put("mermaid", raw);
+            result.put("description", "");
+        }
+        return Result.ok(result);
     }
 }
