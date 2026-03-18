@@ -1,6 +1,6 @@
 # 智能教案生成与学情分析系统 - 项目 Wiki
 
-> 最后更新: 2026-03-17 | 维护者: 项目组
+> 最后更新: 2026-03-18 | 维护者: 项目组
 
 ## 目录
 
@@ -10,9 +10,12 @@
 - [目录结构](#目录结构)
 - [数据库设计](#数据库设计)
 - [API 接口文档](#api-接口文档)
+- [前后端字段对照表](#前后端字段对照表)
 - [LangChain4j 集成说明](#langchain4j-集成说明)
 - [Docker 容器化部署](#docker-容器化部署)
+- [日志与调试](#日志与调试)
 - [开发指南](#开发指南)
+- [项目分工](#项目分工)
 - [参考文档与链接](#参考文档与链接)
 
 ---
@@ -329,7 +332,116 @@ knowledge_point 1──N knowledge_point_mastery
 
 ---
 
-## LangChain4j 集成说明
+## 前后端字段对照表
+
+> 重要: 前端字段名必须与后端 Java 实体字段名（驼峰）完全一致，否则数据不显示
+
+### Student (学生)
+
+| 数据库字段 | Java 字段 | 前端字段 | 类型 |
+|-----------|-----------|---------|------|
+| student_no | studentNo | studentNo | String |
+| name | name | name | String |
+| gender | gender | gender | Integer (1=男, 0=女) |
+| class_name | className | className | String |
+| grade | grade | grade | String |
+
+### Course (课程)
+
+| 数据库字段 | Java 字段 | 前端字段 | 类型 |
+|-----------|-----------|---------|------|
+| user_id | userId | userId | Long |
+| name | name | name | String |
+| subject | subject | subject | String |
+| grade | grade | grade | String |
+
+### Score (成绩)
+
+| 数据库字段 | Java 字段 | 前端字段 | 类型 |
+|-----------|-----------|---------|------|
+| student_id | studentId | studentId | Long |
+| course_id | courseId | courseId | Long |
+| exam_name | examName | examName | String |
+| exam_date | examDate | examDate | LocalDate |
+| score | score | score | BigDecimal |
+| total_score | totalScore | totalScore | BigDecimal |
+
+### Exercise (练习题)
+
+| 数据库字段 | Java 字段 | 前端字段 | 类型 |
+|-----------|-----------|---------|------|
+| question_content | questionContent | questionContent | String |
+| question_type | questionType | questionType | String |
+| difficulty | difficulty | difficulty | String |
+| options | options | options | String(JSON) |
+| answer | answer | answer | String |
+| explanation | explanation | explanation | String |
+
+### ClassAnalyticsDTO (班级统计)
+
+| Java 字段 | 前端字段 | 说明 |
+|-----------|---------|------|
+| studentCount | studentCount | 学生人数 |
+| averageScore | averageScore | 平均分(已计算好) |
+| medianScore | medianScore | 中位数 |
+| maxScore | maxScore | 最高分 |
+| minScore | minScore | 最低分 |
+| passRate | passRate | 及格率(已是百分制, 不需×100) |
+| excellentRate | excellentRate | 优秀率(已是百分制) |
+| scoreDistribution | scoreDistribution | Map<String, Integer> |
+| examTrends | examTrends | List(examName + averageScore) |
+
+### StudentAnalyticsDTO (学生统计)
+
+| Java 字段 | 前端字段 | 说明 |
+|-----------|---------|------|
+| averageScore | averageScore | 平均分 |
+| examCount | examCount | 考试次数 |
+| examScores | examScores | List(examName/score/totalScore/examDate) |
+| knowledgeMasteries | knowledgeMasteries | List(knowledgePointName/masteryLevel) |
+
+### LessonPlanVersion (教案版本)
+
+| Java 字段 | 前端字段 | 说明 |
+|-----------|---------|------|
+| versionNumber | versionNumber | 版本号 |
+| content | content | 内容 |
+| changeNote | changeNote | 变更备注 |
+| createTime | createTime | 创建时间 |
+
+---
+
+## 日志与调试
+
+### 日志配置
+
+- 配置文件: `src/main/resources/logback-spring.xml`
+- 日志级别: `org.example.work` = DEBUG, `dev.langchain4j` = DEBUG
+- 日志文件挂载到本机: `项目根目录/log/`
+  - `log/app.log` - 全部日志
+  - `log/error.log` - 仅错误日志
+- 日志保留: 30天, 最大 500MB
+
+### AI 调用日志
+
+所有 AI 调用均输出 `[AI]` 前缀的 DEBUG 日志, 包含:
+- 请求参数
+- 响应耗时 (毫秒)
+- 响应内容长度
+
+查看方式:
+```bash
+# 实时查看AI相关日志
+docker exec lesson-plan-backend tail -f /app/logs/app.log | grep "\[AI\]"
+# 或直接在本机
+tail -f log/app.log | grep "\[AI\]"
+```
+
+### AI 超时配置
+
+- 后端 `LangChainConfig.java`: `timeout(Duration.ofSeconds(300))` (5分钟)
+- 前端 `api/index.js`: AI 相关接口 `timeout: 300000` (5分钟)
+- 默认重试: langchain4j 内置 2 次重试
 
 ### AI Service 接口列表
 
@@ -418,6 +530,12 @@ cd frontend
 npm install
 npm run dev
 ```
+
+---
+
+## 项目分工
+
+详见 [project-tasks.md](project-tasks.md) — 按模块划分的完整任务清单，含前端/后端/数据库/API 详细文件列表。
 
 ---
 

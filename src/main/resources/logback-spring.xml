@@ -46,8 +46,9 @@
     <logger name="org.example.work" level="DEBUG"/>
     <logger name="org.springframework" level="INFO"/>
     <logger name="org.mybatis" level="INFO"/>
+    <logger name="dev.langchain4j" level="DEBUG"/>
 
-    <root level="INFO">
+    <root level="DEBUG">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR_FILE"/>

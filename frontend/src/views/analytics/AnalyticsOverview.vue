@@ -124,7 +124,7 @@ onMounted(() => { loadCourses(); loadStudents() })
             </div>
             <div class="clay-stat-card">
               <div style="font-size:12px;opacity:0.8;">平均分</div>
-              <div style="font-size:28px;font-weight:700;">{{ classData.avgScore?.toFixed(1) || '-' }}</div>
+              <div style="font-size:28px;font-weight:700;">{{ classData.averageScore != null ? Number(classData.averageScore).toFixed(1) : '-' }}</div>
             </div>
             <div class="clay-stat-card">
               <div style="font-size:12px;opacity:0.8;">最高分</div>
@@ -148,15 +148,15 @@ onMounted(() => { loadCourses(); loadStudents() })
             </div>
           </div>
 
-          <!-- Knowledge mastery -->
-          <div v-if="classData?.knowledgeMastery" class="clay-card" style="margin-bottom:24px;">
-            <h4 style="margin-bottom:16px;color:var(--clay-tertiary-dark);">知识点掌握率</h4>
-            <div v-for="(rate, name) in classData.knowledgeMastery" :key="name" style="margin-bottom:12px;">
+          <!-- Exam trends -->
+          <div v-if="classData?.examTrends?.length" class="clay-card" style="margin-bottom:24px;">
+            <h4 style="margin-bottom:16px;color:var(--clay-tertiary-dark);">各次考试平均分趋势</h4>
+            <div v-for="t in classData.examTrends" :key="t.examName" style="margin-bottom:12px;">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-                <span style="font-size:13px;">{{ name }}</span>
-                <span style="font-size:13px;font-weight:600;">{{ (rate * 100).toFixed(0) }}%</span>
+                <span style="font-size:13px;">{{ t.examName }}</span>
+                <span style="font-size:13px;font-weight:600;">{{ Number(t.averageScore).toFixed(1) }}分</span>
               </div>
-              <el-progress :percentage="rate * 100" :stroke-width="10" :color="rate >= 0.8 ? 'var(--clay-primary)' : rate >= 0.6 ? 'var(--clay-secondary-dark)' : '#DB8282'" :show-text="false" style="border-radius:5px;" />
+              <el-progress :percentage="Number(t.averageScore)" :stroke-width="10" :color="t.averageScore >= 80 ? 'var(--clay-primary)' : t.averageScore >= 60 ? 'var(--clay-secondary-dark)' : '#DB8282'" :show-text="false" />
             </div>
           </div>
 
@@ -187,30 +187,43 @@ onMounted(() => { loadCourses(); loadStudents() })
           <div v-if="studentData" style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;">
             <div class="clay-stat-card">
               <div style="font-size:12px;opacity:0.8;">平均分</div>
-              <div style="font-size:28px;font-weight:700;">{{ studentData.avgScore?.toFixed(1) || '-' }}</div>
+              <div style="font-size:28px;font-weight:700;">{{ studentData.averageScore != null ? Number(studentData.averageScore).toFixed(1) : '-' }}</div>
             </div>
             <div class="clay-stat-card">
               <div style="font-size:12px;opacity:0.8;">考试次数</div>
               <div style="font-size:28px;font-weight:700;">{{ studentData.examCount || '-' }}</div>
             </div>
             <div class="clay-stat-card">
-              <div style="font-size:12px;opacity:0.8;">进步趋势</div>
-              <div style="font-size:28px;font-weight:700;">{{ studentData.trend || '-' }}</div>
+              <div style="font-size:12px;opacity:0.8;">知识点数</div>
+              <div style="font-size:28px;font-weight:700;">{{ studentData.knowledgeMasteries?.length || '-' }}</div>
             </div>
           </div>
 
           <!-- Score history -->
-          <div v-if="studentData?.scores?.length" class="clay-card" style="margin-bottom:24px;">
+          <div v-if="studentData?.examScores?.length" class="clay-card" style="margin-bottom:24px;">
             <h4 style="margin-bottom:16px;color:var(--clay-tertiary-dark);">成绩记录</h4>
-            <el-table :data="studentData.scores" stripe size="small">
+            <el-table :data="studentData.examScores" stripe size="small">
               <el-table-column prop="examName" label="考试" />
-              <el-table-column prop="courseName" label="课程" />
               <el-table-column prop="score" label="成绩" width="80">
                 <template #default="{ row }">
                   <span :style="{ color: row.score >= 60 ? 'var(--clay-primary-dark)' : '#B54747', fontWeight: 600 }">{{ row.score }}</span>
                 </template>
               </el-table-column>
+              <el-table-column prop="totalScore" label="满分" width="80" />
+              <el-table-column prop="examDate" label="日期" width="120" />
             </el-table>
+          </div>
+
+          <!-- Knowledge mastery -->
+          <div v-if="studentData?.knowledgeMasteries?.length" class="clay-card" style="margin-bottom:24px;">
+            <h4 style="margin-bottom:16px;color:var(--clay-tertiary-dark);">知识点掌握度</h4>
+            <div v-for="km in studentData.knowledgeMasteries" :key="km.knowledgePointName" style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:13px;">{{ km.knowledgePointName }}</span>
+                <span style="font-size:13px;font-weight:600;">{{ Number(km.masteryLevel).toFixed(0) }}%</span>
+              </div>
+              <el-progress :percentage="Number(km.masteryLevel)" :stroke-width="10" :color="km.masteryLevel >= 80 ? 'var(--clay-primary)' : km.masteryLevel >= 60 ? 'var(--clay-secondary-dark)' : '#DB8282'" :show-text="false" />
+            </div>
           </div>
 
           <!-- AI Student Report -->

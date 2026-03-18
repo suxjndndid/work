@@ -15,6 +15,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
+
 @Configuration
 public class LangChainConfig {
 
@@ -37,12 +39,14 @@ public class LangChainConfig {
 
     @Bean
     public ChatModel chatModel() {
+        log.info("AI配置: baseUrl={}, model={}, maxTokens={}", baseUrl, chatModelName, maxTokens);
         return OpenAiChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(chatModelName)
                 .temperature(temperature)
                 .maxTokens(maxTokens)
+                .timeout(Duration.ofSeconds(300))
                 .build();
     }
 

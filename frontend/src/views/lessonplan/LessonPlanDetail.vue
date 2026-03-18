@@ -158,8 +158,8 @@ onMounted(() => { loadPlan(); loadVersions() })
     <el-card v-if="versions.length" style="margin-top:24px;">
       <template #header><span style="font-weight:600;">版本历史</span></template>
       <el-timeline>
-        <el-timeline-item v-for="v in versions" :key="v.id" :timestamp="v.createdAt || v.createTime" placement="top">
-          <p>版本 {{ v.version || v.id }}</p>
+        <el-timeline-item v-for="v in versions" :key="v.id" :timestamp="v.createTime" placement="top">
+          <p>版本 {{ v.versionNumber || v.id }}</p>
         </el-timeline-item>
       </el-timeline>
     </el-card>

@@ -1,42 +1,19 @@
 <script setup>
 import { computed } from 'vue'
+import { marked } from 'marked'
 
 const props = defineProps({
   content: { type: String, default: '' },
 })
 
-// Simple markdown renderer - handles common patterns
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
 const rendered = computed(() => {
   if (!props.content) return ''
-  let html = props.content
-    // Escape HTML
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    // Headers
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // Bold & Italic
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    // Unordered lists
-    .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
-    // Ordered lists
-    .replace(/^\d+\.\s(.+)$/gm, '<li>$1</li>')
-    // Code blocks
-    .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    // Inline code
-    .replace(/`(.+?)`/g, '<code>$1</code>')
-    // Horizontal rule
-    .replace(/^---$/gm, '<hr/>')
-    // Line breaks (preserve blank lines as paragraphs)
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br/>')
-
-  // Wrap consecutive <li> in <ul>
-  html = html.replace(/((?:<li>.*?<\/li><br\/>?)+)/g, '<ul>$1</ul>')
-  html = html.replace(/<ul>([\s\S]*?)<\/ul>/g, (m, inner) => '<ul>' + inner.replace(/<br\/>/g, '') + '</ul>')
-
-  return '<p>' + html + '</p>'
+  return marked.parse(props.content)
 })
 </script>
 
@@ -53,7 +30,7 @@ const rendered = computed(() => {
 .md-render :deep(h2) { font-size: 18px; font-weight: 600; color: var(--clay-tertiary-dark); margin: 16px 0 10px; }
 .md-render :deep(h3) { font-size: 15px; font-weight: 600; color: var(--clay-tertiary); margin: 12px 0 8px; }
 .md-render :deep(strong) { color: var(--clay-tertiary-dark); }
-.md-render :deep(ul) { padding-left: 20px; margin: 8px 0; }
+.md-render :deep(ul), .md-render :deep(ol) { padding-left: 20px; margin: 8px 0; }
 .md-render :deep(li) { margin: 4px 0; }
 .md-render :deep(pre) {
   background: var(--clay-bg);
@@ -78,4 +55,32 @@ const rendered = computed(() => {
   margin: 16px 0;
 }
 .md-render :deep(p) { margin: 6px 0; }
+.md-render :deep(table) {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 14px;
+}
+.md-render :deep(th) {
+  background: rgba(138,182,189,0.2);
+  color: var(--clay-tertiary-dark);
+  font-weight: 600;
+  padding: 10px 12px;
+  border: 1px solid var(--clay-border);
+  text-align: left;
+}
+.md-render :deep(td) {
+  padding: 8px 12px;
+  border: 1px solid var(--clay-border);
+}
+.md-render :deep(tr:nth-child(even)) {
+  background: rgba(138,182,189,0.05);
+}
+.md-render :deep(blockquote) {
+  border-left: 4px solid var(--clay-primary);
+  padding: 8px 16px;
+  margin: 12px 0;
+  background: rgba(138,182,189,0.08);
+  border-radius: 0 var(--clay-radius-sm) var(--clay-radius-sm) 0;
+}
 </style>

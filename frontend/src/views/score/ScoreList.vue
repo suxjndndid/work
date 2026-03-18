@@ -9,7 +9,7 @@ const total = ref(0)
 const courses = ref([])
 const query = reactive({ current: 1, size: 10, courseId: '', studentId: '' })
 const dialogVisible = ref(false)
-const form = reactive({ studentId: '', courseId: '', score: 0, examName: '', answerDuration: 0 })
+const form = reactive({ studentId: '', courseId: '', score: 0, examName: '', examDate: '' })
 const batchDialogVisible = ref(false)
 const batchText = ref('')
 
@@ -31,7 +31,7 @@ async function loadCourses() {
 }
 
 function openCreate() {
-  Object.assign(form, { studentId: '', courseId: '', score: 0, examName: '', answerDuration: 0 })
+  Object.assign(form, { studentId: '', courseId: '', score: 0, examName: '', examDate: '' })
   dialogVisible.value = true
 }
 
@@ -98,7 +98,7 @@ onMounted(() => { loadList(); loadCourses() })
             <span :style="{ color: row.score >= 60 ? 'var(--clay-primary-dark)' : '#B54747', fontWeight: 600 }">{{ row.score }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="answerDuration" label="答题时长(分)" width="110" />
+        <el-table-column prop="examDate" label="考试日期" width="120" />
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
             <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
@@ -121,7 +121,7 @@ onMounted(() => { loadList(); loadCourses() })
         </el-form-item>
         <el-form-item label="考试名称"><el-input v-model="form.examName" /></el-form-item>
         <el-form-item label="成绩"><el-input-number v-model="form.score" :min="0" :max="100" /></el-form-item>
-        <el-form-item label="答题时长(分)"><el-input-number v-model="form.answerDuration" :min="0" /></el-form-item>
+        <el-form-item label="考试日期"><el-date-picker v-model="form.examDate" type="date" value-format="YYYY-MM-DD" style="width:100%" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -132,9 +132,9 @@ onMounted(() => { loadList(); loadCourses() })
     <!-- Batch import -->
     <el-dialog v-model="batchDialogVisible" title="批量导入成绩" width="560px" destroy-on-close>
       <p style="margin-bottom:12px;font-size:13px;color:var(--clay-text-light);">
-        请输入JSON数组格式，每条包含 studentId, courseId, examName, score, answerDuration
+        请输入JSON数组格式，每条包含 studentId, courseId, examName, score, examDate
       </p>
-      <el-input v-model="batchText" type="textarea" :rows="10" placeholder='[{"studentId":1,"courseId":1,"examName":"期中考试","score":85,"answerDuration":60}]' />
+      <el-input v-model="batchText" type="textarea" :rows="10" placeholder='[{"studentId":1,"courseId":1,"examName":"期中考试","score":85,"examDate":"2024-11-20"}]' />
       <template #footer>
         <el-button @click="batchDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleBatch">导入</el-button>

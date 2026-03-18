@@ -15,18 +15,18 @@ export const deleteCourse = (id) => request.delete(`/course/${id}`)
 // Lesson Plan
 export const getLessonPlanList = (params) => request.get('/lesson-plan/list', { params })
 export const getLessonPlan = (id) => request.get(`/lesson-plan/${id}`)
-export const generateLessonPlan = (data) => request.post('/lesson-plan/generate', data)
-export const regenerateLessonPlan = (id) => request.post(`/lesson-plan/${id}/regenerate`)
+export const generateLessonPlan = (data) => request.post('/lesson-plan/generate', data, { timeout: 300000 })
+export const regenerateLessonPlan = (id) => request.post(`/lesson-plan/${id}/regenerate`, null, { timeout: 300000 })
 export const updateLessonPlan = (id, data) => request.put(`/lesson-plan/${id}`, data)
 export const deleteLessonPlan = (id) => request.delete(`/lesson-plan/${id}`)
 export const getLessonPlanVersions = (id) => request.get(`/lesson-plan/${id}/versions`)
 export const getTemplates = () => request.get('/lesson-plan/templates')
-export const extractKeywords = (id) => request.post(`/lesson-plan/${id}/keywords`)
-export const generateImage = (id, keyword) => request.post(`/lesson-plan/${id}/generate-image`, { keyword })
+export const extractKeywords = (id) => request.post(`/lesson-plan/${id}/keywords`, null, { timeout: 300000 })
+export const generateImage = (id, keyword) => request.post(`/lesson-plan/${id}/generate-image`, { keyword }, { timeout: 300000 })
 
 // Exercise
 export const getExerciseList = (params) => request.get('/exercise/list', { params })
-export const generateExercise = (data) => request.post('/exercise/generate', data)
+export const generateExercise = (data) => request.post('/exercise/generate', data, { timeout: 300000 })
 export const updateExercise = (id, data) => request.put(`/exercise/${id}`, data)
 export const deleteExercise = (id) => request.delete(`/exercise/${id}`)
 
@@ -52,11 +52,11 @@ export const deleteKnowledgePoint = (id) => request.delete(`/knowledge-point/${i
 // Analytics
 export const getClassAnalytics = (courseId) => request.get(`/analytics/class/${courseId}`)
 export const getStudentAnalytics = (studentId) => request.get(`/analytics/student/${studentId}`)
-export const getClassAiReport = (courseId) => request.post(`/analytics/ai-report/${courseId}`)
-export const getStudentAiReport = (studentId) => request.post(`/analytics/ai-student-report/${studentId}`)
-export const getStudentRecommend = (studentId) => request.post(`/analytics/recommend/${studentId}`)
+export const getClassAiReport = (courseId) => request.post(`/analytics/ai-report/${courseId}`, null, { timeout: 300000 })
+export const getStudentAiReport = (studentId) => request.post(`/analytics/ai-student-report/${studentId}`, null, { timeout: 300000 })
+export const getStudentRecommend = (studentId) => request.post(`/analytics/recommend/${studentId}`, null, { timeout: 300000 })
 
 // Prep Plan
-export const generatePrepPlan = (data) => request.post('/prep-plan/generate', data)
+export const generatePrepPlan = (data) => request.post('/prep-plan/generate', data, { timeout: 300000 })
 export const getPrepPlanList = (params) => request.get('/prep-plan/list', { params })
 export const getPrepPlan = (id) => request.get(`/prep-plan/${id}`)
