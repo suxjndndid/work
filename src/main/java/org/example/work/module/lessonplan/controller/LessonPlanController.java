@@ -3,12 +3,14 @@ package org.example.work.module.lessonplan.controller;
 import cn.dev33.satoken.stp.StpUtil;
 import jakarta.validation.Valid;
 import org.example.work.common.Result;
+import org.example.work.common.SseHelper;
 import org.example.work.module.ai.service.ImageAiService;
 import org.example.work.module.lessonplan.dto.LessonPlanGenerateRequest;
 import org.example.work.module.lessonplan.entity.LessonPlan;
 import org.example.work.module.lessonplan.entity.LessonPlanVersion;
 import org.example.work.module.lessonplan.service.LessonPlanService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -43,15 +45,19 @@ public class LessonPlanController {
         return Result.ok(lessonPlanService.getById(id));
     }
 
-    @PostMapping("/generate")
-    public Result<LessonPlan> generate(@Valid @RequestBody LessonPlanGenerateRequest request) {
+    @PostMapping(value = "/generate", produces = "text/event-stream")
+    public SseEmitter generate(@Valid @RequestBody LessonPlanGenerateRequest request) {
         Long userId = StpUtil.getLoginIdAsLong();
-        return Result.ok(lessonPlanService.generate(request, userId));
+        SseEmitter emitter = SseHelper.createEmitter();
+        lessonPlanService.streamGenerate(request, userId, emitter);
+        return emitter;
     }
 
-    @PostMapping("/{id}/regenerate")
-    public Result<LessonPlan> regenerate(@PathVariable Long id) {
-        return Result.ok(lessonPlanService.regenerate(id));
+    @PostMapping(value = "/{id}/regenerate", produces = "text/event-stream")
+    public SseEmitter regenerate(@PathVariable Long id) {
+        SseEmitter emitter = SseHelper.createEmitter();
+        lessonPlanService.streamRegenerate(id, emitter);
+        return emitter;
     }
 
     @PutMapping("/{id}")

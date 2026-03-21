@@ -1,7 +1,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getLessonPlanList, generateLessonPlan, deleteLessonPlan, getCourseList, getTemplates } from '../../api'
+import { getLessonPlanList, streamGenerateLessonPlan, deleteLessonPlan, getCourseList, getTemplates } from '../../api'
+import MdRender from '../../components/MdRender.vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const router = useRouter()
@@ -15,6 +16,8 @@ const query = reactive({ current: 1, size: 10, courseId: '' })
 const genDialogVisible = ref(false)
 const genForm = reactive({ courseId: '', subject: '', grade: '', topic: '', objectives: '', duration: 45 })
 const templateDialogVisible = ref(false)
+const streamContent = ref('')
+const generatedId = ref(null)
 
 async function loadList() {
   loading.value = true
@@ -42,19 +45,28 @@ async function loadTemplates() {
 
 function openGenerate() {
   Object.assign(genForm, { courseId: '', subject: '', grade: '', topic: '', objectives: '', duration: 45 })
+  streamContent.value = ''
+  generatedId.value = null
   genDialogVisible.value = true
 }
 
-async function handleGenerate() {
+function handleGenerate() {
   if (!genForm.topic) { ElMessage.warning('请输入课程主题'); return }
   generating.value = true
-  try {
-    await generateLessonPlan(genForm)
-    ElMessage.success('教案生成成功！')
-    genDialogVisible.value = false
-    loadList()
-  } catch {}
-  generating.value = false
+  streamContent.value = ''
+  generatedId.value = null
+
+  streamGenerateLessonPlan(
+    genForm,
+    (token) => { streamContent.value += token },
+    () => {
+      generating.value = false
+      ElMessage.success('教案生成成功！')
+      genDialogVisible.value = false
+      loadList()
+    },
+    () => { generating.value = false; ElMessage.error('生成失败') }
+  )
 }
 
 async function handleDelete(row) {
@@ -118,8 +130,8 @@ onMounted(() => { loadList(); loadCourses() })
     </el-card>
 
     <!-- AI Generate Dialog -->
-    <el-dialog v-model="genDialogVisible" title="AI 生成教案" width="560px" destroy-on-close>
-      <el-form label-width="80px">
+    <el-dialog v-model="genDialogVisible" title="AI 生成教案" width="700px" :close-on-click-modal="!generating" :close-on-press-escape="!generating">
+      <el-form v-if="!generating && !streamContent" label-width="80px">
         <el-form-item label="课程">
           <el-select v-model="genForm.courseId" placeholder="选择课程" style="width:100%">
             <el-option v-for="c in courses" :key="c.id" :label="c.name" :value="c.id" />
@@ -131,9 +143,17 @@ onMounted(() => { loadList(); loadCourses() })
         <el-form-item label="教学目标"><el-input v-model="genForm.objectives" type="textarea" :rows="2" placeholder="例：理解集合的含义，掌握集合的表示方法" /></el-form-item>
         <el-form-item label="课时(分)"><el-input-number v-model="genForm.duration" :min="15" :max="120" :step="5" /></el-form-item>
       </el-form>
+      <!-- Streaming content preview -->
+      <div v-if="generating || streamContent" style="max-height:500px;overflow-y:auto;">
+        <div v-if="generating" style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+          <el-icon class="is-loading" color="var(--clay-primary)"><Loading /></el-icon>
+          <span style="color:var(--clay-text-light);font-size:13px;">AI 正在生成教案...</span>
+        </div>
+        <MdRender v-if="streamContent" :content="streamContent" />
+      </div>
       <template #footer>
-        <el-button @click="genDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="generating" @click="handleGenerate">
+        <el-button @click="genDialogVisible = false" :disabled="generating">{{ streamContent ? '关闭' : '取消' }}</el-button>
+        <el-button v-if="!generating && !streamContent" type="primary" @click="handleGenerate">
           <el-icon><MagicStick /></el-icon>&nbsp;开始生成
         </el-button>
       </template>

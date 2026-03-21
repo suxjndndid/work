@@ -2,6 +2,7 @@ package org.example.work.module.analytics.service;
 
 import org.example.work.module.analytics.dto.ClassAnalyticsDTO;
 import org.example.work.module.analytics.dto.StudentAnalyticsDTO;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 public interface AnalyticsService {
 
@@ -16,4 +17,10 @@ public interface AnalyticsService {
 
     /** AI 学生个人分析报告 */
     String generateStudentReport(Long studentId);
+
+    /** AI 班级学情分析报告（流式） */
+    void streamClassReport(Long courseId, SseEmitter emitter);
+
+    /** AI 学生个人分析报告（流式） */
+    void streamStudentReport(Long studentId, SseEmitter emitter);
 }

@@ -1,6 +1,10 @@
 package org.example.work.module.analytics.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import org.example.work.common.SseHelper;
 import org.example.work.module.ai.service.AnalyticsAiService;
 import org.example.work.module.analytics.dto.ClassAnalyticsDTO;
 import org.example.work.module.analytics.dto.StudentAnalyticsDTO;
@@ -16,6 +20,7 @@ import org.example.work.module.analytics.service.AnalyticsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -32,17 +37,20 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     private final KnowledgePointMapper knowledgePointMapper;
     private final KnowledgePointMasteryMapper masteryMapper;
     private final AnalyticsAiService analyticsAiService;
+    private final StreamingChatModel streamingChatModel;
 
     public AnalyticsServiceImpl(ScoreMapper scoreMapper,
                                  StudentMapper studentMapper,
                                  KnowledgePointMapper knowledgePointMapper,
                                  KnowledgePointMasteryMapper masteryMapper,
-                                 AnalyticsAiService analyticsAiService) {
+                                 AnalyticsAiService analyticsAiService,
+                                 StreamingChatModel streamingChatModel) {
         this.scoreMapper = scoreMapper;
         this.studentMapper = studentMapper;
         this.knowledgePointMapper = knowledgePointMapper;
         this.masteryMapper = masteryMapper;
         this.analyticsAiService = analyticsAiService;
+        this.streamingChatModel = streamingChatModel;
     }
 
     @Override
@@ -172,6 +180,32 @@ public class AnalyticsServiceImpl implements AnalyticsService {
         String result = analyticsAiService.analyzeStudentPerformance(data);
         log.debug("[AI] 学生分析完成 - 耗时 {}ms, 返回长度 {}", System.currentTimeMillis() - startTime, result != null ? result.length() : 0);
         return result;
+    }
+
+    @Override
+    public void streamClassReport(Long courseId, SseEmitter emitter) {
+        ClassAnalyticsDTO analytics = getClassAnalytics(courseId);
+        String data = formatClassData(analytics);
+        log.debug("[AI-Stream] 班级学情分析请求 - courseId={}, 数据长度={}", courseId, data.length());
+
+        var messages = List.of(
+                new SystemMessage("你是一位教育数据分析专家，擅长根据学生成绩数据进行学情分析。\n你的分析应该：数据驱动、客观准确、提供可操作的教学建议。\n请关注知识点掌握程度、成绩分布、个体差异等维度。\n请使用中文输出，使用 Markdown 格式。"),
+                new UserMessage("请根据以下学生成绩数据进行学情分析：\n" + data + "\n\n请提供：\n1. 整体成绩分布分析\n2. 知识点掌握情况分析\n3. 薄弱知识点识别\n4. 个性化学习建议\n5. 教学改进建议")
+        );
+        SseHelper.streamChat(streamingChatModel, messages, emitter);
+    }
+
+    @Override
+    public void streamStudentReport(Long studentId, SseEmitter emitter) {
+        StudentAnalyticsDTO analytics = getStudentAnalytics(studentId);
+        String data = formatStudentData(analytics);
+        log.debug("[AI-Stream] 学生分析请求 - studentId={}, 数据长度={}", studentId, data.length());
+
+        var messages = List.of(
+                new SystemMessage("你是一位教育数据分析专家，擅长为单个学生进行个性化学情诊断。\n请根据学生的历次考试成绩和知识点掌握情况，给出针对性的分析和建议。\n请使用中文输出，使用 Markdown 格式。"),
+                new UserMessage("请对以下学生进行个性化学情分析：\n" + data + "\n\n请提供：\n1. 学习表现总评\n2. 优势学科/知识点\n3. 薄弱环节分析\n4. 个性化提升方案\n5. 学习方法建议")
+        );
+        SseHelper.streamChat(streamingChatModel, messages, emitter);
     }
 
     private String formatClassData(ClassAnalyticsDTO dto) {

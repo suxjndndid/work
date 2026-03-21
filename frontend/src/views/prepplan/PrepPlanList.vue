@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import { generatePrepPlan, getCourseList, getLessonPlanList } from '../../api'
+import { streamGeneratePrepPlan, getCourseList, getLessonPlanList } from '../../api'
 import MdRender from '../../components/MdRender.vue'
 import { ElMessage } from 'element-plus'
 
@@ -9,7 +9,7 @@ const generating = ref(false)
 const courses = ref([])
 const lessonPlans = ref([])
 const genForm = reactive({ courseId: '', lessonPlanId: '', requirements: '' })
-const prepPlanResult = ref(null)
+const prepPlanResult = ref('')
 const history = ref([])
 
 async function loadCourses() {
@@ -27,15 +27,16 @@ async function loadLessonPlans() {
   } catch {}
 }
 
-async function handleGenerate() {
+function handleGenerate() {
   if (!genForm.courseId) { ElMessage.warning('请选择课程'); return }
   generating.value = true
-  try {
-    const res = await generatePrepPlan(genForm)
-    prepPlanResult.value = res.data
-    ElMessage.success('备课方案生成成功！')
-  } catch {}
-  generating.value = false
+  prepPlanResult.value = ''
+  streamGeneratePrepPlan(
+    genForm,
+    (token) => { prepPlanResult.value += token },
+    () => { generating.value = false; ElMessage.success('备课方案生成成功！') },
+    () => { generating.value = false; ElMessage.error('生成失败') }
+  )
 }
 
 onMounted(loadCourses)
@@ -78,16 +79,16 @@ onMounted(loadCourses)
 
       <!-- Right: result -->
       <div>
-        <div v-if="generating" class="clay-card" style="text-align:center;padding:60px;">
-          <el-icon class="is-loading" :size="48" color="var(--clay-primary)"><Loading /></el-icon>
-          <p style="margin-top:16px;color:var(--clay-text-light);font-size:15px;">正在整合生成备课方案，请稍候...</p>
-        </div>
-        <div v-else-if="prepPlanResult" class="clay-card">
+        <div v-if="prepPlanResult || generating" class="clay-card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
             <h3 style="color:var(--clay-tertiary-dark);">备课方案</h3>
-            <el-tag type="success">已生成</el-tag>
+            <el-tag :type="generating ? 'warning' : 'success'">{{ generating ? '生成中...' : '已生成' }}</el-tag>
           </div>
-          <MdRender :content="typeof prepPlanResult === 'string' ? prepPlanResult : prepPlanResult.content || JSON.stringify(prepPlanResult, null, 2)" />
+          <div v-if="generating && !prepPlanResult" style="text-align:center;padding:20px;">
+            <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
+            <p style="margin-top:12px;color:var(--clay-text-light);">正在整合生成备课方案...</p>
+          </div>
+          <MdRender v-if="prepPlanResult" :content="prepPlanResult" />
         </div>
         <div v-else class="clay-card" style="text-align:center;padding:60px;">
           <el-icon :size="48" color="var(--clay-text-light)"><Files /></el-icon>

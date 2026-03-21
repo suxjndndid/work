@@ -1,7 +1,9 @@
 package org.example.work.config;
 
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.openai.OpenAiChatModel;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.rag.content.retriever.EmbeddingStoreContentRetriever;
 import dev.langchain4j.service.AiServices;
 import org.example.work.module.ai.service.AnalyticsAiService;
@@ -41,6 +43,19 @@ public class LangChainConfig {
     public ChatModel chatModel() {
         log.info("AI配置: baseUrl={}, model={}, maxTokens={}", baseUrl, chatModelName, maxTokens);
         return OpenAiChatModel.builder()
+                .baseUrl(baseUrl)
+                .apiKey(apiKey)
+                .modelName(chatModelName)
+                .temperature(temperature)
+                .maxTokens(maxTokens)
+                .timeout(Duration.ofSeconds(300))
+                .build();
+    }
+
+    @Bean
+    public StreamingChatModel streamingChatModel() {
+        log.info("流式AI配置: baseUrl={}, model={}", baseUrl, chatModelName);
+        return OpenAiStreamingChatModel.builder()
                 .baseUrl(baseUrl)
                 .apiKey(apiKey)
                 .modelName(chatModelName)

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getCourseList, getStudentList, getClassAnalytics, getStudentAnalytics, getClassAiReport, getStudentAiReport, getStudentRecommend } from '../../api'
+import { getCourseList, getStudentList, getClassAnalytics, getStudentAnalytics, streamClassAiReport, streamStudentAiReport, streamStudentRecommend } from '../../api'
 import MdRender from '../../components/MdRender.vue'
 import { ElMessage } from 'element-plus'
 
@@ -52,15 +52,16 @@ async function loadClassData() {
   loadingClass.value = false
 }
 
-async function handleClassAiReport() {
+function handleClassAiReport() {
   if (!selectedCourseId.value) { ElMessage.warning('请先选择课程'); return }
   generatingClassReport.value = true
-  try {
-    const res = await getClassAiReport(selectedCourseId.value)
-    classReport.value = res.data || ''
-    ElMessage.success('分析报告生成成功')
-  } catch {}
-  generatingClassReport.value = false
+  classReport.value = ''
+  streamClassAiReport(
+    selectedCourseId.value,
+    (token) => { classReport.value += token },
+    () => { generatingClassReport.value = false; ElMessage.success('分析报告生成成功') },
+    () => { generatingClassReport.value = false; ElMessage.error('生成失败') }
+  )
 }
 
 async function loadStudentData() {
@@ -75,28 +76,30 @@ async function loadStudentData() {
   loadingStudent.value = false
 }
 
-async function handleStudentAiReport() {
+function handleStudentAiReport() {
   if (!selectedStudentId.value) { ElMessage.warning('请先选择学生'); return }
   generatingStudentReport.value = true
   activeAiView.value = 'analysis'
-  try {
-    const res = await getStudentAiReport(selectedStudentId.value)
-    studentReport.value = res.data || ''
-    ElMessage.success('学生分析报告生成成功')
-  } catch {}
-  generatingStudentReport.value = false
+  studentReport.value = ''
+  streamStudentAiReport(
+    selectedStudentId.value,
+    (token) => { studentReport.value += token },
+    () => { generatingStudentReport.value = false; ElMessage.success('学生分析报告生成成功') },
+    () => { generatingStudentReport.value = false; ElMessage.error('生成失败') }
+  )
 }
 
-async function handleRecommend() {
+function handleRecommend() {
   if (!selectedStudentId.value) { ElMessage.warning('请先选择学生'); return }
   generatingRecommend.value = true
   activeAiView.value = 'recommend'
-  try {
-    const res = await getStudentRecommend(selectedStudentId.value)
-    recommendation.value = res.data || ''
-    ElMessage.success('个性化推荐生成成功')
-  } catch {}
-  generatingRecommend.value = false
+  recommendation.value = ''
+  streamStudentRecommend(
+    selectedStudentId.value,
+    (token) => { recommendation.value += token },
+    () => { generatingRecommend.value = false; ElMessage.success('个性化推荐生成成功') },
+    () => { generatingRecommend.value = false; ElMessage.error('生成失败') }
+  )
 }
 
 onMounted(() => { loadCourses(); loadStudents() })
@@ -166,9 +169,18 @@ onMounted(() => { loadCourses(); loadStudents() })
           </div>
 
           <!-- AI Report -->
-          <el-card v-if="classReport">
-            <template #header><span style="font-weight:600;">AI 分析报告</span></template>
+          <el-card v-if="classReport || generatingClassReport">
+            <template #header>
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:600;">AI 分析报告</span>
+                <el-tag v-if="generatingClassReport" type="warning" size="small">生成中...</el-tag>
+              </div>
+            </template>
             <MdRender :content="classReport" />
+            <div v-if="generatingClassReport && !classReport" style="text-align:center;padding:20px;">
+              <el-icon class="is-loading" :size="24" color="var(--clay-primary)"><Loading /></el-icon>
+              <p style="margin-top:8px;color:var(--clay-text-light);font-size:13px;">AI 正在分析...</p>
+            </div>
           </el-card>
         </div>
       </el-tab-pane>
@@ -245,27 +257,30 @@ onMounted(() => { loadCourses(); loadStudents() })
             </el-button>
           </div>
 
-          <!-- AI Analysis card (v-show preserves content) -->
+          <!-- AI Analysis card -->
           <div v-show="activeAiView === 'analysis'">
             <el-card>
               <template #header>
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                   <span style="font-weight:600;">AI 学生分析报告</span>
-                  <el-button v-if="studentReport" type="primary" size="small" :loading="generatingStudentReport" @click="handleStudentAiReport">
-                    <el-icon><Refresh /></el-icon>&nbsp;重新生成
-                  </el-button>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <el-tag v-if="generatingStudentReport" type="warning" size="small">生成中...</el-tag>
+                    <el-button v-if="studentReport && !generatingStudentReport" type="primary" size="small" @click="handleStudentAiReport">
+                      <el-icon><Refresh /></el-icon>&nbsp;重新生成
+                    </el-button>
+                  </div>
                 </div>
               </template>
-              <div v-if="generatingStudentReport" style="text-align:center;padding:40px;">
-                <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
-                <p style="margin-top:12px;color:var(--clay-text-light);">AI 正在分析学情数据...</p>
+              <div v-if="generatingStudentReport && !studentReport" style="text-align:center;padding:20px;">
+                <el-icon class="is-loading" :size="24" color="var(--clay-primary)"><Loading /></el-icon>
+                <p style="margin-top:8px;color:var(--clay-text-light);font-size:13px;">AI 正在分析学情数据...</p>
               </div>
-              <MdRender v-else-if="studentReport" :content="studentReport" />
-              <el-empty v-else description="点击上方按钮生成 AI 学情分析报告" :image-size="80" />
+              <MdRender v-if="studentReport" :content="studentReport" />
+              <el-empty v-if="!studentReport && !generatingStudentReport" description="点击上方按钮生成 AI 学情分析报告" :image-size="80" />
             </el-card>
           </div>
 
-          <!-- Recommendation card (v-show preserves content) -->
+          <!-- Recommendation card -->
           <div v-show="activeAiView === 'recommend'">
             <el-card>
               <template #header>
@@ -274,17 +289,20 @@ onMounted(() => { loadCourses(); loadStudents() })
                     <el-icon color="var(--clay-primary)"><Promotion /></el-icon>
                     <span style="font-weight:600;">个性化资源推荐</span>
                   </div>
-                  <el-button v-if="recommendation" type="warning" size="small" :loading="generatingRecommend" @click="handleRecommend">
-                    <el-icon><Refresh /></el-icon>&nbsp;重新生成
-                  </el-button>
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <el-tag v-if="generatingRecommend" type="warning" size="small">生成中...</el-tag>
+                    <el-button v-if="recommendation && !generatingRecommend" type="warning" size="small" @click="handleRecommend">
+                      <el-icon><Refresh /></el-icon>&nbsp;重新生成
+                    </el-button>
+                  </div>
                 </div>
               </template>
-              <div v-if="generatingRecommend" style="text-align:center;padding:40px;">
-                <el-icon class="is-loading" :size="32" color="var(--clay-primary)"><Loading /></el-icon>
-                <p style="margin-top:12px;color:var(--clay-text-light);">AI 正在生成个性化推荐...</p>
+              <div v-if="generatingRecommend && !recommendation" style="text-align:center;padding:20px;">
+                <el-icon class="is-loading" :size="24" color="var(--clay-primary)"><Loading /></el-icon>
+                <p style="margin-top:8px;color:var(--clay-text-light);font-size:13px;">AI 正在生成个性化推荐...</p>
               </div>
-              <MdRender v-else-if="recommendation" :content="recommendation" />
-              <el-empty v-else description="点击上方按钮生成个性化学习资源推荐" :image-size="80" />
+              <MdRender v-if="recommendation" :content="recommendation" />
+              <el-empty v-if="!recommendation && !generatingRecommend" description="点击上方按钮生成个性化学习资源推荐" :image-size="80" />
             </el-card>
           </div>
 

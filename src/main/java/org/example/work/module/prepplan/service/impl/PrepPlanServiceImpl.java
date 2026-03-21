@@ -1,7 +1,11 @@
 package org.example.work.module.prepplan.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import dev.langchain4j.data.message.SystemMessage;
+import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import org.example.work.common.SseHelper;
 import org.example.work.module.analytics.dto.ClassAnalyticsDTO;
 import org.example.work.module.analytics.service.AnalyticsService;
 import org.example.work.module.exercise.entity.Exercise;
@@ -12,6 +16,7 @@ import org.example.work.module.prepplan.service.PrepPlanService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -24,38 +29,69 @@ public class PrepPlanServiceImpl implements PrepPlanService {
     private final ExerciseMapper exerciseMapper;
     private final AnalyticsService analyticsService;
     private final ChatModel chatModel;
+    private final StreamingChatModel streamingChatModel;
 
     public PrepPlanServiceImpl(LessonPlanMapper lessonPlanMapper,
                                 ExerciseMapper exerciseMapper,
                                 AnalyticsService analyticsService,
-                                ChatModel chatModel) {
+                                ChatModel chatModel,
+                                StreamingChatModel streamingChatModel) {
         this.lessonPlanMapper = lessonPlanMapper;
         this.exerciseMapper = exerciseMapper;
         this.analyticsService = analyticsService;
         this.chatModel = chatModel;
+        this.streamingChatModel = streamingChatModel;
     }
 
     @Override
     public String generatePrepPlan(Long lessonPlanId, Long courseId) {
         log.info("生成总体备课方案: lessonPlanId={}, courseId={}", lessonPlanId, courseId);
+        String prompt = buildPrompt(lessonPlanId, courseId);
+        if (prompt == null) return "教案不存在";
 
-        // 1. 获取教案
-        LessonPlan lessonPlan = lessonPlanMapper.selectById(lessonPlanId);
-        if (lessonPlan == null) {
-            return "教案不存在";
+        long startTime = System.currentTimeMillis();
+        log.debug("[AI] 备课方案请求 - prompt长度={}", prompt.length());
+        String response = chatModel.chat(prompt);
+        long elapsed = System.currentTimeMillis() - startTime;
+        log.debug("[AI] 备课方案生成完成 - 耗时 {}ms, 返回长度 {}", elapsed, response != null ? response.length() : 0);
+        log.info("备课方案生成完成");
+        return response;
+    }
+
+    @Override
+    public void streamPrepPlan(Long lessonPlanId, Long courseId, SseEmitter emitter) {
+        log.info("流式生成备课方案: lessonPlanId={}, courseId={}", lessonPlanId, courseId);
+        String prompt = buildPrompt(lessonPlanId, courseId);
+        if (prompt == null) {
+            try {
+                emitter.send(SseEmitter.event().data("教案不存在"));
+                emitter.send(SseEmitter.event().data("[DONE]"));
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+            return;
         }
 
-        // 2. 获取关联习题
+        var messages = List.of(
+                new SystemMessage("你是一位资深教学设计专家，请根据提供的教案、习题和学情数据生成备课方案。请使用中文输出，使用 Markdown 格式。"),
+                new UserMessage(prompt)
+        );
+        SseHelper.streamChat(streamingChatModel, messages, emitter);
+    }
+
+    private String buildPrompt(Long lessonPlanId, Long courseId) {
+        LessonPlan lessonPlan = lessonPlanMapper.selectById(lessonPlanId);
+        if (lessonPlan == null) return null;
+
         List<Exercise> exercises = exerciseMapper.selectList(
                 new LambdaQueryWrapper<Exercise>().eq(Exercise::getLessonPlanId, lessonPlanId));
 
-        // 3. 获取学情数据(如果有课程ID)
         ClassAnalyticsDTO analytics = null;
         if (courseId != null) {
             analytics = analyticsService.getClassAnalytics(courseId);
         }
 
-        // 4. 组装 prompt
         StringBuilder prompt = new StringBuilder();
         prompt.append("请根据以下资料，生成一份完整的备课方案，使用 Markdown 格式输出。\n\n");
         prompt.append("## 已有教案\n");
@@ -88,12 +124,6 @@ public class PrepPlanServiceImpl implements PrepPlanService {
         prompt.append("6. 课后延伸与个性化推荐\n");
         prompt.append("7. 备课时间安排建议\n");
 
-        long startTime = System.currentTimeMillis();
-        log.debug("[AI] 备课方案请求 - prompt长度={}", prompt.length());
-        String response = chatModel.chat(prompt.toString());
-        long elapsed = System.currentTimeMillis() - startTime;
-        log.debug("[AI] 备课方案生成完成 - 耗时 {}ms, 返回长度 {}", elapsed, response != null ? response.length() : 0);
-        log.info("备课方案生成完成");
-        return response;
+        return prompt.toString();
     }
 }

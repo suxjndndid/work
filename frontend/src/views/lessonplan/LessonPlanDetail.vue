@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getLessonPlan, updateLessonPlan, regenerateLessonPlan, getLessonPlanVersions, extractKeywords, generateImage } from '../../api'
+import { getLessonPlan, updateLessonPlan, streamRegenerateLessonPlan, getLessonPlanVersions, extractKeywords, generateImage } from '../../api'
 import MdRender from '../../components/MdRender.vue'
 import MermaidDiagram from '../../components/MermaidDiagram.vue'
 import { ElMessage } from 'element-plus'
@@ -46,14 +46,20 @@ async function handleSave() {
   } catch {}
 }
 
-async function handleRegenerate() {
+function handleRegenerate() {
   regenerating.value = true
-  try {
-    await regenerateLessonPlan(id)
-    ElMessage.success('重新生成成功')
-    loadPlan()
-  } catch {}
-  regenerating.value = false
+  plan.value.content = ''
+  streamRegenerateLessonPlan(
+    id,
+    (token) => { plan.value.content += token },
+    () => {
+      regenerating.value = false
+      editContent.value = plan.value.content
+      ElMessage.success('重新生成成功')
+      loadVersions()
+    },
+    () => { regenerating.value = false; ElMessage.error('重新生成失败') }
+  )
 }
 
 async function handleExtractKeywords() {
@@ -122,10 +128,18 @@ onMounted(() => { loadPlan(); loadVersions() })
     <!-- Content -->
     <el-card style="margin-bottom:24px;">
       <template #header>
-        <span style="font-weight:600;">教案内容</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-weight:600;">教案内容</span>
+          <el-tag v-if="regenerating" type="warning" size="small">AI 生成中...</el-tag>
+        </div>
       </template>
       <el-input v-if="editing" v-model="editContent" type="textarea" :rows="20" />
-      <MdRender v-else :content="plan.content || '暂无内容，请点击重新生成或手动编辑'" style="min-height:200px;" />
+      <template v-else>
+        <MdRender :content="plan.content || '暂无内容，请点击重新生成或手动编辑'" style="min-height:200px;" />
+        <div v-if="regenerating && !plan.content" style="text-align:center;padding:20px;">
+          <el-icon class="is-loading" :size="24" color="var(--clay-primary)"><Loading /></el-icon>
+        </div>
+      </template>
     </el-card>
 
     <!-- AI Tools row -->
