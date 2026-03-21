@@ -204,10 +204,11 @@ onMounted(() => { loadCourses(); loadStudents() })
               <div style="font-size:12px;opacity:0.8;">考试次数</div>
               <div style="font-size:28px;font-weight:700;">{{ studentData.examCount || '-' }}</div>
             </div>
-            <div class="clay-stat-card">
+            <!-- 知识点掌握度为演示数据，暂时隐藏 -->
+            <!-- <div class="clay-stat-card">
               <div style="font-size:12px;opacity:0.8;">知识点数</div>
               <div style="font-size:28px;font-weight:700;">{{ studentData.knowledgeMasteries?.length || '-' }}</div>
-            </div>
+            </div> -->
           </div>
 
           <!-- Score history -->
@@ -225,8 +226,8 @@ onMounted(() => { loadCourses(); loadStudents() })
             </el-table>
           </div>
 
-          <!-- Knowledge mastery -->
-          <div v-if="studentData?.knowledgeMasteries?.length" class="clay-card" style="margin-bottom:24px;">
+          <!-- 知识点掌握度为演示数据，暂时隐藏 -->
+          <!-- <div v-if="studentData?.knowledgeMasteries?.length" class="clay-card" style="margin-bottom:24px;">
             <h4 style="margin-bottom:16px;color:var(--clay-tertiary-dark);">知识点掌握度</h4>
             <div v-for="km in studentData.knowledgeMasteries" :key="km.knowledgePointName" style="margin-bottom:12px;">
               <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
@@ -235,7 +236,7 @@ onMounted(() => { loadCourses(); loadStudents() })
               </div>
               <el-progress :percentage="Number(km.masteryLevel)" :stroke-width="10" :color="km.masteryLevel >= 80 ? 'var(--clay-primary)' : km.masteryLevel >= 60 ? 'var(--clay-secondary-dark)' : '#DB8282'" :show-text="false" />
             </div>
-          </div>
+          </div> -->
 
           <!-- Toggle buttons -->
           <div style="display:flex;gap:12px;margin-bottom:20px;">

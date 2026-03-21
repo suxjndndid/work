@@ -8,5 +8,5 @@ public interface PrepPlanService {
     String generatePrepPlan(Long lessonPlanId, Long courseId);
 
     /** 生成总体备课方案（流式） */
-    void streamPrepPlan(Long lessonPlanId, Long courseId, SseEmitter emitter);
+    void streamPrepPlan(Long lessonPlanId, Long courseId, String requirements, SseEmitter emitter);
 }

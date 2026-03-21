@@ -21,9 +21,10 @@ public class PrepPlanController {
 
     /** 生成总体备课方案（流式） */
     @PostMapping(value = "/generate", produces = "text/event-stream")
-    public SseEmitter generate(@RequestBody Map<String, Long> body) {
-        Long lessonPlanId = body.get("lessonPlanId");
-        Long courseId = body.get("courseId");
+    public SseEmitter generate(@RequestBody Map<String, Object> body) {
+        Long lessonPlanId = toLong(body.get("lessonPlanId"));
+        Long courseId = toLong(body.get("courseId"));
+        String requirements = body.get("requirements") != null ? body.get("requirements").toString() : null;
         SseEmitter emitter = SseHelper.createEmitter();
         if (lessonPlanId == null) {
             try {
@@ -35,7 +36,13 @@ public class PrepPlanController {
             }
             return emitter;
         }
-        prepPlanService.streamPrepPlan(lessonPlanId, courseId, emitter);
+        prepPlanService.streamPrepPlan(lessonPlanId, courseId, requirements, emitter);
         return emitter;
+    }
+
+    private Long toLong(Object obj) {
+        if (obj == null) return null;
+        if (obj instanceof Number) return ((Number) obj).longValue();
+        try { return Long.valueOf(obj.toString()); } catch (NumberFormatException e) { return null; }
     }
 }

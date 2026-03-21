@@ -46,7 +46,7 @@ public class PrepPlanServiceImpl implements PrepPlanService {
     @Override
     public String generatePrepPlan(Long lessonPlanId, Long courseId) {
         log.info("生成总体备课方案: lessonPlanId={}, courseId={}", lessonPlanId, courseId);
-        String prompt = buildPrompt(lessonPlanId, courseId);
+        String prompt = buildPrompt(lessonPlanId, courseId, null);
         if (prompt == null) return "教案不存在";
 
         long startTime = System.currentTimeMillis();
@@ -59,9 +59,9 @@ public class PrepPlanServiceImpl implements PrepPlanService {
     }
 
     @Override
-    public void streamPrepPlan(Long lessonPlanId, Long courseId, SseEmitter emitter) {
+    public void streamPrepPlan(Long lessonPlanId, Long courseId, String requirements, SseEmitter emitter) {
         log.info("流式生成备课方案: lessonPlanId={}, courseId={}", lessonPlanId, courseId);
-        String prompt = buildPrompt(lessonPlanId, courseId);
+        String prompt = buildPrompt(lessonPlanId, courseId, requirements);
         if (prompt == null) {
             try {
                 emitter.send(SseEmitter.event().data("教案不存在"));
@@ -80,7 +80,7 @@ public class PrepPlanServiceImpl implements PrepPlanService {
         SseHelper.streamChat(streamingChatModel, messages, emitter);
     }
 
-    private String buildPrompt(Long lessonPlanId, Long courseId) {
+    private String buildPrompt(Long lessonPlanId, Long courseId, String requirements) {
         LessonPlan lessonPlan = lessonPlanMapper.selectById(lessonPlanId);
         if (lessonPlan == null) return null;
 
@@ -123,6 +123,11 @@ public class PrepPlanServiceImpl implements PrepPlanService {
         prompt.append("5. 学情分析与教学策略调整(基于学情数据)\n");
         prompt.append("6. 课后延伸与个性化推荐\n");
         prompt.append("7. 备课时间安排建议\n");
+
+        if (requirements != null && !requirements.isBlank()) {
+            prompt.append("\n## 额外要求\n");
+            prompt.append(requirements).append("\n");
+        }
 
         return prompt.toString();
     }
